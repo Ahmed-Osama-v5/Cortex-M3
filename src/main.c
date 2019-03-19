@@ -57,13 +57,16 @@ typedef enum {ANALOG_IN, FLOATING_IN, PULLED_IN} in_State_t;
 */
 int main(void)
 {
-	uint8_t lcd_buffer[20];
+	char lcd_buffer[20];
+	unsigned int var = RCC->CFGR;
+	RCC->CFGR &= ~((1 << 1) | (1 << 0));
 
 	LCD_config_pins();
 	lcd_init();
 	lcd_send_string("STM32F100C8T6 demo");
 	lcd_goto_xy(0,1);
-	lcd_send_string("STM32F100C8T6 demo");
+	sprintf(lcd_buffer, "RCC_CFGR= 0x%x", var);
+	lcd_send_string(lcd_buffer);
 
 	/* TODO - Add your application code here */
 

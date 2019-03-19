@@ -46,11 +46,11 @@
 
 void lcd_EN_pulse(void);
 void lcd_send_nibble(uint8_t data); // re-maps data bits to LCD Pins.
-void lcd_send_char(uint8_t data);		//forms data ready to send to LCD
+void lcd_send_char(char data);		//forms data ready to send to LCD
 void lcd_send_command(uint8_t data);	//forms command ready to send to LCD
 void lcd_init(void);			//Initializes LCD
 void lcd_clear(void);				//Clears LCD
-void lcd_send_string(uint8_t *data);	//Outputs string to LCD
+void lcd_send_string(char *data);	//Outputs string to LCD
 void lcd_goto_xy(uint8_t x, uint8_t y);	//Cursor to X Y position
 
 #endif /* LCD_H_ */

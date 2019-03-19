@@ -50,7 +50,7 @@ void lcd_send_nibble(uint8_t data){
 		LCD_D7_PORT->ODR &= ~(1 << LCD_D7_PIN);
 }
 
-void lcd_send_char(uint8_t data)		//Sends Char to LCD
+void lcd_send_char(char data)		//Sends Char to LCD
 {
 	LCD_RS_PORT->ODR |= (1 << LCD_RS_PIN);
 
@@ -93,7 +93,7 @@ void lcd_clear(void)				//Clears LCD
 	lcd_send_command(0x01);
 }
 
-void lcd_send_string(uint8_t* data)	//Outputs string to LCD
+void lcd_send_string(char *data)	//Outputs string to LCD
 {
 	while(*data){
 		lcd_send_char(*data++);
