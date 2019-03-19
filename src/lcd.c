@@ -18,9 +18,9 @@
 
 void lcd_EN_pulse(void){
 	LCD_EN_PORT->ODR |= (1 << LCD_EN_PIN);
-	delay(1000);
+	delay_ms(1);
 	LCD_EN_PORT->ODR &= ~(1 << LCD_EN_PIN);
-	delay(1000);
+	delay_ms(1);
 }
 
 void lcd_send_nibble(uint8_t data){
@@ -72,7 +72,6 @@ void lcd_send_command(uint8_t data)	//Sends Command to LCD
 }
 void lcd_init(void)//Initializes LCD
 {
-	delay(15);
 	lcd_send_nibble(0x00);
 
 	LCD_RS_PORT->ODR &= ~(1 << LCD_RS_PIN);
@@ -84,7 +83,7 @@ void lcd_init(void)//Initializes LCD
 	lcd_send_command(0x28); // 4-bit
 	lcd_send_command(0x0E);
 	lcd_send_command(0x01);
-	delay(10000);
+	delay_ms(20);
 	lcd_send_command(0x06);
 	lcd_send_command(0x0C); // Cursor off
 }

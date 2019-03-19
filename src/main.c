@@ -59,21 +59,19 @@ int main(void)
 {
 	char lcd_buffer[20];
 	unsigned int var = RCC->CFGR;
-	RCC->CFGR &= ~((1 << 1) | (1 << 0));
 
 	LCD_config_pins();
 	lcd_init();
 	lcd_send_string("STM32F100C8T6 demo");
-	lcd_goto_xy(0,1);
-	sprintf(lcd_buffer, "RCC_CFGR= 0x%x", var);
-	lcd_send_string(lcd_buffer);
+	//lcd_goto_xy(0,1);
 
 	/* TODO - Add your application code here */
 
 	/* Infinite loop */
 	while (1)
 	{
-
+		GPIOB->ODR ^= (1 << 12);
+		delay_ms(1000);
 	}
 }
 
@@ -87,6 +85,7 @@ void LCD_config_pins(void)
 	setPinAsOut(LCD_RS_PORT, LCD_RS_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
 	setPinAsOut(LCD_RW_PORT, LCD_RW_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
 	setPinAsOut(LCD_EN_PORT, LCD_EN_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
+	setPinAsOut(GPIOB, 12, PUSH_PULL_OUT, SPEED_10_MHZ);
 
 	setPinAsOut(LCD_D4_PORT, LCD_D4_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
 	setPinAsOut(LCD_D5_PORT, LCD_D5_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);

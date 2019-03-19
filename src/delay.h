@@ -8,6 +8,6 @@
 #ifndef DELAY_H_
 #define DELAY_H_
 
-void delay(long del);
+void delay_ms(uint16_t del);
 
 #endif /* DELAY_H_ */
