@@ -33,20 +33,37 @@ SOFTWARE.
 #include "stm32f10x.h"
 #include "lcd.h"
 #include "delay.h"
+#include "gpio.h"
 
 /* Private typedef */
-typedef enum {PULL_UP, PULL_DOWN, NO_PULL} pull_Up_Down_State_t;
-typedef enum {PUSH_PULL_OUT, OPEN_DRAIN_OUT, ALTERNATE_PUSH_PULL_OUT, ALTERNATE_OPEN_DRAIN_OUT} out_State_t;
-typedef enum {SPEED_2_MHZ, SPEED_10_MHZ, SPEED_50_MHZ} out_Speed_State_t;
-typedef enum {ANALOG_IN, FLOATING_IN, PULLED_IN} in_State_t;
 /* Private define  */
+#define LED_PORT	GPIOB
+#define LED_PIN		12
+
 /* Private macro */
 /* Private variables */
+volatile int PB15_IRQCounter = 0, PB14_IRQCounter = 0;
 
 /* Private function prototypes */
- void LCD_config_pins(void);
- void setPinAsOut(GPIO_TypeDef *port, uint8_t pin, out_State_t outState, out_Speed_State_t speed);
+void LCD_config_pins(void);
+
 /* Private functions */
+void EXTI15_10_IRQHandler(void)
+{
+	if(EXTI->PR & EXTI_PR_PR15)
+	{
+		PB15_IRQCounter++;
+		LED_PORT->ODR |= (1 << LED_PIN);
+		EXTI->PR |= EXTI_PR_PR15; // reset the request flag
+	}
+
+	if(EXTI->PR & EXTI_PR_PR14)
+	{
+		PB14_IRQCounter++;
+		LED_PORT->ODR &= ~(1 << LED_PIN);
+		EXTI->PR |= EXTI_PR_PR14; // reset the request flag
+	}
+}
 
 /**
 **===========================================================================
@@ -58,20 +75,38 @@ typedef enum {ANALOG_IN, FLOATING_IN, PULLED_IN} in_State_t;
 int main(void)
 {
 	char lcd_buffer[20];
-	unsigned int var = RCC->CFGR;
 
 	LCD_config_pins();
-	lcd_init();
-	lcd_send_string("STM32F100C8T6 demo");
-	//lcd_goto_xy(0,1);
 
+	setPinAsOut(GPIOB, 12, PUSH_PULL_OUT, SPEED_10_MHZ);
+
+	RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
+
+	AFIO->EXTICR[3] |= AFIO_EXTICR4_EXTI14_PB;
+	AFIO->EXTICR[3] |= AFIO_EXTICR4_EXTI15_PB;
+
+	EXTI->IMR |= EXTI_IMR_MR14;
+	EXTI->FTSR |= EXTI_FTSR_TR14;
+
+	EXTI->IMR |= EXTI_IMR_MR15;
+	EXTI->FTSR |= EXTI_FTSR_TR15;
+
+	NVIC_EnableIRQ(EXTI15_10_IRQn);
+	NVIC_SetPriority(EXTI15_10_IRQn, 0);
+
+	lcd_init();
 	/* TODO - Add your application code here */
 
 	/* Infinite loop */
 	while (1)
 	{
-		GPIOB->ODR ^= (1 << 12);
-		delay_ms(1000);
+		lcd_goto_xy(0,0);
+		sprintf(lcd_buffer, "EXTI_PB15: %d", PB15_IRQCounter);
+		lcd_send_string(lcd_buffer);
+
+		lcd_goto_xy(0,1);
+		sprintf(lcd_buffer, "EXTI_PB14: %d", PB14_IRQCounter);
+		lcd_send_string(lcd_buffer);
 	}
 }
 
@@ -85,133 +120,9 @@ void LCD_config_pins(void)
 	setPinAsOut(LCD_RS_PORT, LCD_RS_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
 	setPinAsOut(LCD_RW_PORT, LCD_RW_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
 	setPinAsOut(LCD_EN_PORT, LCD_EN_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
-	setPinAsOut(GPIOB, 12, PUSH_PULL_OUT, SPEED_10_MHZ);
 
 	setPinAsOut(LCD_D4_PORT, LCD_D4_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
 	setPinAsOut(LCD_D5_PORT, LCD_D5_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
 	setPinAsOut(LCD_D6_PORT, LCD_D6_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
 	setPinAsOut(LCD_D7_PORT, LCD_D7_PIN, PUSH_PULL_OUT, SPEED_10_MHZ);
-}
-
-void setPinAsOut(GPIO_TypeDef *port, uint8_t pin, out_State_t outState, out_Speed_State_t speed)
-{
-	if(pin <= 7)
-	{
-		pin *= 4;
-		switch(speed)
-		{
-		case SPEED_2_MHZ:
-			port->CRL &= ~(1 << pin);
-			pin++;
-			port->CRL |= (1 << pin);
-			break;
-		case SPEED_10_MHZ:
-			port->CRL |= (1 << pin);
-			pin++;
-			port->CRL &= ~(1 << pin);
-			break;
-		case SPEED_50_MHZ:
-			port->CRL |= (1 << pin);
-			pin++;
-			port->CRL |= (1 << pin);
-			break;
-		default: // SPEED_10_MHZ
-			port->CRL |= (1 << pin);
-			pin++;
-			port->CRL &= ~(1 << pin);
-			break;
-		}
-
-		pin++;
-
-		switch(outState)
-		{
-		case PUSH_PULL_OUT:
-			port->CRL &= ~(1 << pin);
-			pin++;
-			port->CRL &= ~(1 << pin);
-			break;
-		case OPEN_DRAIN_OUT:
-			port->CRL |= (1 << pin);
-			pin++;
-			port->CRL &= ~(1 << pin);
-			break;
-		case ALTERNATE_PUSH_PULL_OUT:
-			port->CRL &= ~(1 << pin);
-			pin++;
-			port->CRL |= (1 << pin);
-			break;
-		case ALTERNATE_OPEN_DRAIN_OUT:
-			port->CRL |= (1 << pin);
-			pin++;
-			port->CRL |= (1 << pin);
-			break;
-		default: // PUSH_PULL_OUT
-			port->CRL &= ~(1 << pin);
-			pin++;
-			port->CRL &= ~(1 << pin);
-			break;
-		}
-	}
-
-	else
-	{
-		pin -= 8;
-		pin *= 4;
-		switch(speed)
-		{
-		case SPEED_2_MHZ:
-			port->CRH &= ~(1 << pin);
-			pin++;
-			port->CRH |= (1 << pin);
-			break;
-		case SPEED_10_MHZ:
-			port->CRH |= (1 << pin);
-			pin++;
-			port->CRH &= ~(1 << pin);
-			break;
-		case SPEED_50_MHZ:
-			port->CRH |= (1 << pin);
-			pin++;
-			port->CRH |= (1 << pin);
-			break;
-		default: // SPEED_10_MHZ
-			port->CRH |= (1 << pin);
-			pin++;
-			port->CRH &= ~(1 << pin);
-			break;
-		}
-
-		pin++;
-
-		switch(outState)
-		{
-		case PUSH_PULL_OUT:
-			port->CRH &= ~(1 << pin);
-			pin++;
-			port->CRH &= ~(1 << pin);
-			break;
-		case OPEN_DRAIN_OUT:
-			port->CRH |= (1 << pin);
-			pin++;
-			port->CRH &= ~(1 << pin);
-			break;
-		case ALTERNATE_PUSH_PULL_OUT:
-			port->CRH &= ~(1 << pin);
-			pin++;
-			port->CRH |= (1 << pin);
-			break;
-		case ALTERNATE_OPEN_DRAIN_OUT:
-			port->CRH |= (1 << pin);
-			pin++;
-			port->CRH |= (1 << pin);
-			break;
-		default: // PUSH_PULL_OUT
-			port->CRH &= ~(1 << pin);
-			pin++;
-			port->CRH &= ~(1 << pin);
-			break;
-		}
-	}
-
 }
